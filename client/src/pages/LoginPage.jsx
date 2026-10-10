@@ -1,17 +1,44 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
+import GoogleLoginButton from "../components/GoogleLoginButton.jsx";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { loginWithCredentials } = useAuth();
+  const { showToast } = useToast();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.message || "Login failed", "error");
+        return;
+      }
+      loginWithCredentials(data);
+      showToast(`Welcome back, ${data.name}!`, "success");
+      navigate("/");
+    } catch {
+      showToast("Could not connect to server. Please try again.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -77,11 +104,19 @@ export default function LoginPage() {
             Remember me for 30 days
           </label>
 
-          <button type="submit" className="btn-primary w-full py-3">
-            Sign In
-            <ArrowRight className="w-4 h-4" />
+          <button type="submit" disabled={submitting} className="btn-primary w-full py-3 disabled:opacity-60">
+            {submitting ? "Signing in..." : "Sign In"}
+            {!submitting && <ArrowRight className="w-4 h-4" />}
           </button>
         </form>
+
+        <div className="flex items-center gap-3 my-5">
+          <div className="flex-1 h-px bg-navy-200" />
+          <span className="text-xs text-navy-400 font-medium">OR</span>
+          <div className="flex-1 h-px bg-navy-200" />
+        </div>
+
+        <GoogleLoginButton text="Continue with Google" />
 
         <p className="text-center text-sm text-navy-500 mt-6">
           Don't have an account?{" "}

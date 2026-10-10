@@ -1,6 +1,8 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext.jsx";
 import { useWishlist } from "../../context/WishlistContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { useToast } from "../../context/ToastContext.jsx";
 
 const categories = [
   { name: "Electronics", id: "electronics" },
@@ -14,6 +16,15 @@ const categories = [
 export default function Header({ searchQuery, onSearchChange }) {
   const { itemCount } = useCart();
   const { count: wishlistCount } = useWishlist();
+  const { user, isAuthenticated, logout } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    showToast("You've been signed out", "info");
+    navigate("/");
+  };
 
   return (
     <header className="bg-navy-800 text-white sticky top-0 z-50 shadow-lg">
@@ -57,13 +68,38 @@ export default function Header({ searchQuery, onSearchChange }) {
               )}
             </Link>
 
-            <Link
-              to="/login"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-navy-100 hover:bg-navy-700 transition-colors"
-            >
-              <UserIcon />
-              <span className="hidden lg:inline">Sign In</span>
-            </Link>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/account"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-navy-100 hover:bg-navy-700 transition-colors"
+                >
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full" />
+                  ) : (
+                    <UserIcon />
+                  )}
+                  <span className="hidden lg:inline max-w-[100px] truncate">{user?.name}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-navy-100 hover:bg-navy-700 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  <span className="hidden lg:inline">Sign Out</span>
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-navy-100 hover:bg-navy-700 transition-colors"
+              >
+                <UserIcon />
+                <span className="hidden lg:inline">Sign In</span>
+              </Link>
+            )}
           </nav>
         </div>
 
