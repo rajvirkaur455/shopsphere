@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Dome as Home, ArrowLeft } from "lucide-react";
+import { Home, ArrowLeft } from "lucide-react";
 
 export default function NotFoundPage() {
   return (
