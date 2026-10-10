@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ["./client/index.html", "./client/src/**/*.{js,jsx}"],
+  content: ["./index.html", "./client/src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
@@ -54,10 +54,16 @@ export default {
         heading: ["Inter", "system-ui", "sans-serif"],
       },
       animation: {
-        "fade-in": "fadeIn 0.3s ease-out",
-        "slide-up": "slideUp 0.3s ease-out",
+        "fade-in": "fadeIn 0.4s ease-out",
+        "slide-up": "slideUp 0.5s ease-out",
         "slide-down": "slideDown 0.3s ease-out",
         "scale-in": "scaleIn 0.2s ease-out",
+        "float": "float 6s ease-in-out infinite",
+        "float-slow": "float 8s ease-in-out infinite",
+        "marquee": "marquee 30s linear infinite",
+        "gradient-shift": "gradientShift 8s ease infinite",
+        "pulse-ring": "pulseRing 3s ease-out infinite",
+        "slide-up-delayed": "slideUpDelayed 0.6s ease-out both",
       },
       keyframes: {
         fadeIn: {
@@ -65,7 +71,7 @@ export default {
           "100%": { opacity: "1" },
         },
         slideUp: {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "0%": { opacity: "0", transform: "translateY(30px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         slideDown: {
@@ -75,6 +81,26 @@ export default {
         scaleIn: {
           "0%": { opacity: "0", transform: "scale(0.95)" },
           "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        gradientShift: {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+        pulseRing: {
+          "0%": { transform: "scale(0.8)", opacity: "0.8" },
+          "100%": { transform: "scale(1.4)", opacity: "0" },
+        },
+        slideUpDelayed: {
+          "0%": { opacity: "0", transform: "translateY(40px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
       },
     },
