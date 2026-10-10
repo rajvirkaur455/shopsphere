@@ -17,7 +17,6 @@ import {
   useScrollReveal,
   useCountUp,
   useScrollProgress,
-  useParallax,
   useMousePosition,
 } from "../hooks/useScrollReveal.js";
 
@@ -36,7 +35,7 @@ const heroSlides = [
     title: "Everything you need,",
     highlight: "all in one place",
     subtitle: "Discover thousands of products from top brands and trusted sellers. Shop electronics, fashion, home goods, and more at unbeatable prices.",
-    image: "https://images.pexels.com/photos/36730470/pexels-photo-36730470.jpeg?auto=compress&cs=tinysrgb&h=900&w=900",
+    image: "https://images.pexels.com/photos/374894/pexels-photo-374894.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
     cta: "Start Shopping",
     ctaLink: "/products",
     secondaryCta: "Today's Deals",
@@ -47,7 +46,7 @@ const heroSlides = [
     title: "Latest gadgets,",
     highlight: "unbeatable prices",
     subtitle: "From flagship smartphones to premium laptops, get the tech you love at prices you'll love even more. Free shipping on orders over $50.",
-    image: "https://images.pexels.com/photos/12935042/pexels-photo-12935042.jpeg?auto=compress&cs=tinysrgb&h=900&w=900",
+    image: "https://images.pexels.com/photos/1334602/pexels-photo-1334602.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
     cta: "Shop Electronics",
     ctaLink: "/products?category=electronics",
     secondaryCta: "View All",
@@ -58,12 +57,20 @@ const heroSlides = [
     title: "Style that speaks,",
     highlight: "trends that last",
     subtitle: "Refresh your wardrobe with the season's hottest fashion. Clothing, shoes, and accessories from brands you trust, all in one place.",
-    image: "https://images.pexels.com/photos/6969616/pexels-photo-6969616.jpeg?auto=compress&cs=tinysrgb&h=900&w=900",
+    image: "https://images.pexels.com/photos/1488470/pexels-photo-1488470.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop",
     cta: "Shop Fashion",
     ctaLink: "/products?category=fashion",
     secondaryCta: "New Arrivals",
     secondaryLink: "/products",
   },
+];
+
+const heroQuickCategories = [
+  { label: "Electronics", icon: Smartphone },
+  { label: "Fashion", icon: Shirt },
+  { label: "Laptops", icon: Laptop },
+  { label: "Watches", icon: Watch },
+  { label: "Home", icon: HomeIcon },
 ];
 
 const testimonials = [
@@ -171,12 +178,13 @@ function Reveal({ children, className = "", delay = 0 }) {
   );
 }
 
-/* ---------- Hero with parallax + mouse tilt ---------- */
+/* ---------- Hero: full-bleed immersive carousel ---------- */
 
 function Hero() {
   const [active, setActive] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [imgRef, parallaxOffset] = useParallax(0.15);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scrollY, setScrollY] = useState(0);
   const [tiltRef, mousePos, onMouseMove, onMouseLeave] = useMousePosition();
 
   useEffect(() => {
@@ -187,171 +195,220 @@ function Hero() {
     return () => clearInterval(timer);
   }, [isPaused]);
 
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const slide = heroSlides[active];
   const goNext = () => setActive((prev) => (prev + 1) % heroSlides.length);
   const goPrev = () => setActive((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
 
-  const tiltX = mousePos.y * -8;
-  const tiltY = mousePos.x * 8;
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      window.location.href = `/products?q=${encodeURIComponent(searchQuery.trim())}`;
+    }
+  };
 
   return (
     <section
-      className="relative overflow-hidden bg-navy-900"
+      className="relative min-h-[640px] lg:min-h-[720px] overflow-hidden bg-navy-900"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-navy-900 via-navy-800 to-navy-900" />
-      <div className="absolute inset-0 opacity-30 bg-[linear-gradient(110deg,transparent_35%,rgba(239,90,22,0.15)_50%,transparent_65%)] bg-[length:200%_100%] animate-gradient-shift" />
+      {/* Cross-fading background images */}
+      {heroSlides.map((s, i) => (
+        <div
+          key={i}
+          className="absolute inset-0 transition-all duration-1000 ease-out"
+          style={{
+            opacity: i === active ? 1 : 0,
+            transform: `scale(${i === active ? 1.05 : 1.15}) translateY(${i === active ? scrollY * 0.3 : 0}px)`,
+          }}
+        >
+          <img
+            src={s.image}
+            alt={s.badge}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ))}
 
-      {/* Floating orbs with parallax via mouse */}
+      {/* Dark gradient overlays for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-navy-900/80 via-navy-900/60 to-navy-900/90" />
+      <div className="absolute inset-0 bg-gradient-to-r from-navy-900/80 via-transparent to-transparent" />
+      <div className="absolute inset-0 opacity-25 bg-[linear-gradient(110deg,transparent_35%,rgba(239,90,22,0.15)_50%,transparent_65%)] bg-[length:200%_100%] animate-gradient-shift" />
+
+      {/* Mouse-reactive glow */}
       <div
-        className="absolute top-20 left-10 w-72 h-72 bg-accent-500/10 rounded-full blur-3xl animate-float-slow"
-        style={{ transform: `translate(${mousePos.x * 30}px, ${mousePos.y * 30}px)` }}
+        className="absolute w-[500px] h-[500px] rounded-full bg-accent-500/8 blur-3xl pointer-events-none transition-transform duration-300 ease-out"
+        style={{
+          left: `calc(${((mousePos.x + 1) / 2) * 100}% - 250px)`,
+          top: `calc(${((mousePos.y + 1) / 2) * 100}% - 250px)`,
+        }}
       />
-      <div
-        className="absolute bottom-10 right-20 w-96 h-96 bg-accent-600/10 rounded-full blur-3xl animate-float"
-        style={{ transform: `translate(${mousePos.x * -40}px, ${mousePos.y * -40}px)` }}
-      />
-      <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-navy-400/10 rounded-full blur-2xl animate-float-slow" />
 
       {/* Arrow controls */}
       <button
         onClick={goPrev}
-        className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm items-center justify-center transition-all hover:scale-110 active:scale-95"
+        className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/10 items-center justify-center transition-all hover:scale-110 active:scale-95"
         aria-label="Previous slide"
       >
         <ChevronLeft className="w-6 h-6 text-white" />
       </button>
       <button
         onClick={goNext}
-        className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm items-center justify-center transition-all hover:scale-110 active:scale-95"
+        className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/25 backdrop-blur-md border border-white/10 items-center justify-center transition-all hover:scale-110 active:scale-95"
         aria-label="Next slide"
       >
         <ChevronRight className="w-6 h-6 text-white" />
       </button>
 
-      <div className="container-page relative z-10">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[600px] py-16 lg:py-24">
-          {/* Text */}
-          <div key={active} className="space-y-6 animate-slide-up">
-            <span className="badge bg-accent-500/20 text-accent-300 border border-accent-500/30 backdrop-blur-sm">
-              <Sparkles className="w-3 h-3" />
+      {/* Content */}
+      <div className="container-page relative z-10 flex flex-col justify-center min-h-[640px] lg:min-h-[720px] py-20 lg:py-28" ref={tiltRef} onMouseMove={onMouseMove} onMouseLeave={onMouseLeave}>
+        <div className="max-w-2xl" key={active}>
+          {/* Badge */}
+          <div className="animate-slide-up" style={{ animationDuration: "0.6s" }}>
+            <span className="badge bg-accent-500/20 text-accent-300 border border-accent-500/30 backdrop-blur-md px-3 py-1 text-sm">
+              <Sparkles className="w-3.5 h-3.5" />
               {slide.badge}
             </span>
-            <h1 className="text-5xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight">
-              {slide.title}
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-400 to-accent-600">
-                {slide.highlight}
-              </span>
-            </h1>
-            <p className="text-navy-200 text-lg lg:text-xl max-w-lg leading-relaxed">
-              {slide.subtitle}
-            </p>
-            <div className="flex flex-wrap gap-4 pt-2">
-              <Link
-                to={slide.ctaLink}
-                className="btn bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98] px-6 py-3 text-base shadow-lg shadow-accent-500/30 hover:shadow-xl hover:shadow-accent-500/40 transition-all duration-300 group"
-              >
-                {slide.cta}
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                to={slide.secondaryLink}
-                className="btn border-2 border-navy-500 text-white hover:bg-navy-700 hover:border-navy-400 active:scale-[0.98] px-6 py-3 text-base backdrop-blur-sm transition-all duration-300"
-              >
-                <Flame className="w-5 h-5 text-accent-400" />
-                {slide.secondaryCta}
-              </Link>
-            </div>
-            <div className="flex items-center gap-3 pt-4">
-              {heroSlides.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActive(i)}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    i === active ? "w-10 bg-accent-500" : "w-2 bg-navy-600 hover:bg-navy-500"
-                  }`}
-                  aria-label={`Go to slide ${i + 1}`}
-                />
-              ))}
-            </div>
           </div>
 
-          {/* Image with 3D tilt + parallax */}
-          <div
-            key={`img-${active}`}
-            className="hidden lg:flex justify-center animate-scale-in perspective-1000"
-            ref={tiltRef}
-            onMouseMove={onMouseMove}
-            onMouseLeave={onMouseLeave}
+          {/* Title */}
+          <h1
+            className="text-5xl lg:text-8xl font-extrabold text-white leading-[1.02] tracking-tight mt-5 animate-slide-up"
+            style={{ animationDuration: "0.7s", animationDelay: "0.1s" }}
           >
-            <div
-              className="relative preserve-3d will-change-transform transition-transform duration-200 ease-out"
-              style={{
-                transform: `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(${parallaxOffset}px)`,
-              }}
+            {slide.title}
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-400 via-accent-500 to-accent-600">
+              {slide.highlight}
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p
+            className="text-navy-200 text-lg lg:text-xl max-w-xl leading-relaxed mt-6 animate-slide-up"
+            style={{ animationDuration: "0.7s", animationDelay: "0.2s" }}
+          >
+            {slide.subtitle}
+          </p>
+
+          {/* Search bar */}
+          <form
+            onSubmit={handleSearch}
+            className="mt-8 flex items-center bg-white/10 backdrop-blur-md rounded-2xl border border-white/15 p-1.5 max-w-xl animate-slide-up"
+            style={{ animationDuration: "0.7s", animationDelay: "0.3s" }}
+          >
+            <div className="flex items-center pl-3 text-navy-300">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for products, brands, categories..."
+              className="flex-1 bg-transparent text-white placeholder-navy-300 text-sm px-3 py-2.5 outline-none"
+            />
+            <button
+              type="submit"
+              className="btn bg-accent-500 text-white hover:bg-accent-600 active:scale-95 px-5 py-2.5 rounded-xl shadow-lg shadow-accent-500/30 transition-all duration-200 group"
             >
-              <div className="absolute inset-0 rounded-3xl bg-accent-500/20 animate-pulse-ring" />
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10">
-                <img
-                  src={slide.image}
-                  alt="Shopping"
-                  className="w-full max-w-lg h-[460px] object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-navy-900/40 to-transparent" />
-              </div>
+              Search
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </form>
 
-              {/* Floating discount card */}
-              <div
-                className="absolute -top-6 -left-6 bg-white rounded-2xl shadow-xl p-4 animate-float"
-                style={{ transform: "translateZ(60px)" }}
+          {/* Quick category pills */}
+          <div
+            className="flex flex-wrap gap-2.5 mt-6 animate-slide-up"
+            style={{ animationDuration: "0.7s", animationDelay: "0.4s" }}
+          >
+            {heroQuickCategories.map((cat) => (
+              <Link
+                key={cat.label}
+                to={`/products?category=${cat.label.toLowerCase()}`}
+                className="inline-flex items-center gap-2 bg-white/8 hover:bg-white/15 backdrop-blur-md text-navy-100 hover:text-white border border-white/10 hover:border-accent-500/40 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 group"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-accent-50 flex items-center justify-center">
-                    <BadgePercent className="w-6 h-6 text-accent-600" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-navy-900">Up to 70%</p>
-                    <p className="text-xs text-navy-400">Off this week</p>
-                  </div>
-                </div>
-              </div>
+                <cat.icon className="w-4 h-4 text-accent-400 group-hover:scale-110 transition-transform" />
+                {cat.label}
+              </Link>
+            ))}
+          </div>
 
-              {/* Floating secure card */}
-              <div
-                className="absolute -bottom-6 -right-6 bg-white rounded-2xl shadow-xl p-4 animate-float-slow"
-                style={{ transform: "translateZ(40px)" }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-success-100 flex items-center justify-center">
-                    <ShieldCheck className="w-6 h-6 text-success-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-navy-900">Secure Payment</p>
-                    <p className="text-xs text-navy-400">100% protected</p>
-                  </div>
-                </div>
-              </div>
+          {/* CTA buttons */}
+          <div
+            className="flex flex-wrap gap-4 mt-8 animate-slide-up"
+            style={{ animationDuration: "0.7s", animationDelay: "0.5s" }}
+          >
+            <Link
+              to={slide.ctaLink}
+              className="btn bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98] px-7 py-3.5 text-base shadow-xl shadow-accent-500/30 hover:shadow-2xl hover:shadow-accent-500/40 transition-all duration-300 group rounded-xl"
+            >
+              {slide.cta}
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              to={slide.secondaryLink}
+              className="btn border-2 border-white/20 text-white hover:bg-white/10 hover:border-white/40 active:scale-[0.98] px-7 py-3.5 text-base backdrop-blur-md transition-all duration-300 rounded-xl"
+            >
+              <Flame className="w-5 h-5 text-accent-400" />
+              {slide.secondaryCta}
+            </Link>
+          </div>
 
-              {/* Live shoppers */}
-              <div
-                className="absolute top-1/2 -right-8 bg-white rounded-xl shadow-lg px-3 py-2 animate-float"
-                style={{ transform: "translateZ(30px)" }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-success-500" />
-                  </span>
-                  <p className="text-xs font-semibold text-navy-700">2,847 shopping now</p>
-                </div>
+          {/* Slide dots */}
+          <div
+            className="flex items-center gap-3 mt-10 animate-slide-up"
+            style={{ animationDuration: "0.7s", animationDelay: "0.6s" }}
+          >
+            {heroSlides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActive(i)}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  i === active ? "w-12 bg-accent-500" : "w-2 bg-white/25 hover:bg-white/40"
+                }`}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Glass stats strip at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 hidden lg:block">
+        <div className="container-page">
+          <div className="flex items-center justify-between bg-white/8 backdrop-blur-xl border-t border-white/10 rounded-t-2xl px-8 py-4">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success-500" />
+              </span>
+              <p className="text-sm text-white/90 font-medium">2,847 people shopping right now</p>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-white/80">
+                <Truck className="w-4 h-4 text-accent-400" />
+                <span className="text-sm">Free shipping over $50</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/80">
+                <RotateCcw className="w-4 h-4 text-accent-400" />
+                <span className="text-sm">30-day returns</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/80">
+                <ShieldCheck className="w-4 h-4 text-accent-400" />
+                <span className="text-sm">Secure checkout</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Wave divider */}
       <div className="relative z-10">
         <svg viewBox="0 0 1440 60" className="w-full h-auto" preserveAspectRatio="none">
           <path d="M0,60 C360,20 1080,20 1440,60 L1440,60 L0,60 Z" fill="#f0f4f8" />
