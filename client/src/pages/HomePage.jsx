@@ -13,7 +13,13 @@ import {
 import ProductCard from "../components/ProductCard.jsx";
 import { ProductGridSkeleton } from "../components/ui/Skeleton.jsx";
 import { formatPrice, calculateDiscount } from "../utils/format.js";
-import { useScrollReveal, useCountUp } from "../hooks/useScrollReveal.js";
+import {
+  useScrollReveal,
+  useCountUp,
+  useScrollProgress,
+  useParallax,
+  useMousePosition,
+} from "../hooks/useScrollReveal.js";
 
 const categoryIcons = {
   Smartphone,
@@ -97,6 +103,7 @@ export default function HomePage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showTopBtn, setShowTopBtn] = useState(false);
+  const scrollProgress = useScrollProgress();
 
   useEffect(() => {
     Promise.all([fetchFeaturedProducts(), fetchDealProducts(), fetchCategories()])
@@ -116,6 +123,14 @@ export default function HomePage() {
 
   return (
     <div className="animate-fade-in">
+      {/* Scroll progress bar */}
+      <div className="fixed top-0 left-0 right-0 z-[60] h-1 bg-transparent pointer-events-none">
+        <div
+          className="h-full bg-gradient-to-r from-accent-400 via-accent-500 to-accent-600 transition-[width] duration-75 ease-out"
+          style={{ width: `${scrollProgress * 100}%` }}
+        />
+      </div>
+
       <Hero />
       <BrandMarquee />
       <FeatureBar />
@@ -146,8 +161,8 @@ function Reveal({ children, className = "", delay = 0 }) {
   return (
     <div
       ref={ref}
-      className={`${className} transition-all duration-700 ease-out ${
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+      className={`${className} transition-all duration-700 ease-out will-change-transform ${
+        inView ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-12 scale-95"
       }`}
       style={{ transitionDelay: `${delay}ms` }}
     >
@@ -156,11 +171,13 @@ function Reveal({ children, className = "", delay = 0 }) {
   );
 }
 
-/* ---------- Hero ---------- */
+/* ---------- Hero with parallax + mouse tilt ---------- */
 
 function Hero() {
   const [active, setActive] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [imgRef, parallaxOffset] = useParallax(0.15);
+  const [tiltRef, mousePos, onMouseMove, onMouseLeave] = useMousePosition();
 
   useEffect(() => {
     if (isPaused) return;
@@ -171,9 +188,11 @@ function Hero() {
   }, [isPaused]);
 
   const slide = heroSlides[active];
-
   const goNext = () => setActive((prev) => (prev + 1) % heroSlides.length);
   const goPrev = () => setActive((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+
+  const tiltX = mousePos.y * -8;
+  const tiltY = mousePos.x * 8;
 
   return (
     <section
@@ -184,21 +203,28 @@ function Hero() {
       <div className="absolute inset-0 bg-gradient-to-br from-navy-900 via-navy-800 to-navy-900" />
       <div className="absolute inset-0 opacity-30 bg-[linear-gradient(110deg,transparent_35%,rgba(239,90,22,0.15)_50%,transparent_65%)] bg-[length:200%_100%] animate-gradient-shift" />
 
-      <div className="absolute top-20 left-10 w-72 h-72 bg-accent-500/10 rounded-full blur-3xl animate-float-slow" />
-      <div className="absolute bottom-10 right-20 w-96 h-96 bg-accent-600/10 rounded-full blur-3xl animate-float" />
+      {/* Floating orbs with parallax via mouse */}
+      <div
+        className="absolute top-20 left-10 w-72 h-72 bg-accent-500/10 rounded-full blur-3xl animate-float-slow"
+        style={{ transform: `translate(${mousePos.x * 30}px, ${mousePos.y * 30}px)` }}
+      />
+      <div
+        className="absolute bottom-10 right-20 w-96 h-96 bg-accent-600/10 rounded-full blur-3xl animate-float"
+        style={{ transform: `translate(${mousePos.x * -40}px, ${mousePos.y * -40}px)` }}
+      />
       <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-navy-400/10 rounded-full blur-2xl animate-float-slow" />
 
       {/* Arrow controls */}
       <button
         onClick={goPrev}
-        className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm items-center justify-center transition-all"
+        className="hidden lg:flex absolute left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm items-center justify-center transition-all hover:scale-110 active:scale-95"
         aria-label="Previous slide"
       >
         <ChevronLeft className="w-6 h-6 text-white" />
       </button>
       <button
         onClick={goNext}
-        className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm items-center justify-center transition-all"
+        className="hidden lg:flex absolute right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm items-center justify-center transition-all hover:scale-110 active:scale-95"
         aria-label="Next slide"
       >
         <ChevronRight className="w-6 h-6 text-white" />
@@ -206,6 +232,7 @@ function Hero() {
 
       <div className="container-page relative z-10">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[600px] py-16 lg:py-24">
+          {/* Text */}
           <div key={active} className="space-y-6 animate-slide-up">
             <span className="badge bg-accent-500/20 text-accent-300 border border-accent-500/30 backdrop-blur-sm">
               <Sparkles className="w-3 h-3" />
@@ -237,7 +264,6 @@ function Hero() {
                 {slide.secondaryCta}
               </Link>
             </div>
-
             <div className="flex items-center gap-3 pt-4">
               {heroSlides.map((_, i) => (
                 <button
@@ -252,8 +278,20 @@ function Hero() {
             </div>
           </div>
 
-          <div key={`img-${active}`} className="hidden lg:flex justify-center animate-scale-in">
-            <div className="relative">
+          {/* Image with 3D tilt + parallax */}
+          <div
+            key={`img-${active}`}
+            className="hidden lg:flex justify-center animate-scale-in perspective-1000"
+            ref={tiltRef}
+            onMouseMove={onMouseMove}
+            onMouseLeave={onMouseLeave}
+          >
+            <div
+              className="relative preserve-3d will-change-transform transition-transform duration-200 ease-out"
+              style={{
+                transform: `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(${parallaxOffset}px)`,
+              }}
+            >
               <div className="absolute inset-0 rounded-3xl bg-accent-500/20 animate-pulse-ring" />
               <div className="relative rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10">
                 <img
@@ -263,7 +301,12 @@ function Hero() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy-900/40 to-transparent" />
               </div>
-              <div className="absolute -top-6 -left-6 bg-white rounded-2xl shadow-xl p-4 animate-float">
+
+              {/* Floating discount card */}
+              <div
+                className="absolute -top-6 -left-6 bg-white rounded-2xl shadow-xl p-4 animate-float"
+                style={{ transform: "translateZ(60px)" }}
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-accent-50 flex items-center justify-center">
                     <BadgePercent className="w-6 h-6 text-accent-600" />
@@ -274,7 +317,12 @@ function Hero() {
                   </div>
                 </div>
               </div>
-              <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl shadow-xl p-4 animate-float-slow">
+
+              {/* Floating secure card */}
+              <div
+                className="absolute -bottom-6 -right-6 bg-white rounded-2xl shadow-xl p-4 animate-float-slow"
+                style={{ transform: "translateZ(40px)" }}
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-success-100 flex items-center justify-center">
                     <ShieldCheck className="w-6 h-6 text-success-600" />
@@ -285,7 +333,12 @@ function Hero() {
                   </div>
                 </div>
               </div>
-              <div className="absolute top-1/2 -right-8 bg-white rounded-xl shadow-lg px-3 py-2 animate-float">
+
+              {/* Live shoppers */}
+              <div
+                className="absolute top-1/2 -right-8 bg-white rounded-xl shadow-lg px-3 py-2 animate-float"
+                style={{ transform: "translateZ(30px)" }}
+              >
                 <div className="flex items-center gap-2">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success-400 opacity-75" />
@@ -348,11 +401,11 @@ function FeatureBar() {
     <section className="bg-white border-b border-navy-100">
       <div className="container-page">
         <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-navy-100">
-          {features.map((f) => (
+          {features.map((f, i) => (
             <div
               key={f.title}
               className="flex items-center gap-3 px-4 py-5 hover:bg-navy-50/50 transition-colors group animate-slide-up-delayed"
-              style={{ animationDelay: `${features.indexOf(f) * 100}ms` }}
+              style={{ animationDelay: `${i * 100}ms` }}
             >
               <div className="w-12 h-12 rounded-xl bg-navy-50 flex items-center justify-center shrink-0 group-hover:bg-accent-50 group-hover:scale-110 transition-all duration-300">
                 <f.icon className="w-6 h-6 text-navy-600 group-hover:text-accent-600 transition-colors" />
@@ -369,7 +422,29 @@ function FeatureBar() {
   );
 }
 
-/* ---------- Category Section ---------- */
+/* ---------- Category Section with 3D tilt cards ---------- */
+
+function TiltCard({ children, className = "" }) {
+  const [ref, mousePos, onMouseMove, onMouseLeave] = useMousePosition();
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      className={`perspective-1000 ${className}`}
+    >
+      <div
+        className="preserve-3d will-change-transform transition-transform duration-200 ease-out h-full"
+        style={{
+          transform: `perspective(800px) rotateX(${mousePos.y * -6}deg) rotateY(${mousePos.x * 6}deg)`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 function CategorySection({ categories, loading }) {
   const [ref, inView] = useScrollReveal();
@@ -385,19 +460,27 @@ function CategorySection({ categories, loading }) {
           : categories.map((cat, i) => {
             const Icon = categoryIcons[cat.icon] || Smartphone;
             return (
-              <Link
+              <div
                 key={cat.id}
-                to={`/products?category=${cat.id}`}
-                className={`card p-5 flex flex-col items-center text-center group hover:shadow-lg hover:border-accent-200 transition-all duration-500 hover:-translate-y-1 ${
+                className={`transition-all duration-700 ease-out ${
                   inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                 }`}
                 style={{ transitionDelay: `${i * 80}ms` }}
               >
-                <div className="w-14 h-14 rounded-2xl bg-navy-50 flex items-center justify-center mb-3 group-hover:bg-accent-50 group-hover:scale-110 transition-all duration-300">
-                  <Icon className="w-7 h-7 text-navy-500 group-hover:text-accent-500 transition-colors" />
-                </div>
-                <span className="text-sm font-medium text-navy-700 leading-tight">{cat.name}</span>
-              </Link>
+                <TiltCard>
+                  <Link
+                    to={`/products?category=${cat.id}`}
+                    className="card p-5 flex flex-col items-center text-center group hover:shadow-lg hover:border-accent-200 transition-all duration-300 h-full"
+                  >
+                    <div className="w-14 h-14 rounded-2xl bg-navy-50 flex items-center justify-center mb-3 group-hover:bg-accent-50 group-hover:scale-110 transition-all duration-300" style={{ transform: "translateZ(20px)" }}>
+                      <Icon className="w-7 h-7 text-navy-500 group-hover:text-accent-500 transition-colors" />
+                    </div>
+                    <span className="text-sm font-medium text-navy-700 leading-tight" style={{ transform: "translateZ(10px)" }}>
+                      {cat.name}
+                    </span>
+                  </Link>
+                </TiltCard>
+              </div>
             );
           })}
       </div>
@@ -420,9 +503,9 @@ function FeaturedSection({ featured, loading }) {
             <h2 className="text-3xl lg:text-4xl font-bold text-navy-900">Featured Products</h2>
             <p className="text-base text-navy-400 mt-2">Handpicked favorites loved by our customers</p>
           </div>
-          <Link to="/products" className="btn-outline hidden sm:inline-flex">
+          <Link to="/products" className="btn-outline hidden sm:inline-flex group">
             View All
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
       </Reveal>
@@ -485,7 +568,7 @@ function DealsSection({ deals, loading }) {
                   { label: "SEC", value: pad(timeLeft.seconds) },
                 ].map((t, i) => (
                   <div key={t.label} className="flex items-center gap-1.5">
-                    <div className="bg-navy-900 text-white rounded-lg px-3 py-2 text-center min-w-[44px]">
+                    <div className="bg-navy-900 text-white rounded-lg px-3 py-2 text-center min-w-[44px] transition-transform hover:scale-105">
                       <p className="text-lg font-bold tabular-nums leading-none">{t.value}</p>
                       <p className="text-[9px] text-navy-300 mt-0.5">{t.label}</p>
                     </div>
@@ -544,6 +627,9 @@ function StatsBanner() {
       <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-accent-500/50 to-transparent" />
       <div className="absolute top-10 right-10 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl animate-float-slow" />
 
+      {/* Shimmer sweep */}
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_40%,rgba(239,90,22,0.06)_50%,transparent_60%)] bg-[length:200%_100%] animate-shimmer" />
+
       <div className="container-page relative z-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {stats.map((stat, i) => (
@@ -560,7 +646,7 @@ function StatCounter({ target, suffix, label, icon: Icon, formatStat, delay }) {
 
   return (
     <div ref={ref} className="text-center transition-all duration-700" style={{ transitionDelay: `${delay}ms` }}>
-      <div className="inline-flex w-14 h-14 rounded-2xl bg-white/10 items-center justify-center mb-3 backdrop-blur-sm hover:scale-110 transition-transform duration-300">
+      <div className="inline-flex w-14 h-14 rounded-2xl bg-white/10 items-center justify-center mb-3 backdrop-blur-sm hover:scale-110 hover:rotate-6 transition-transform duration-300">
         <Icon className="w-7 h-7 text-accent-400" />
       </div>
       <p className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight tabular-nums">
@@ -598,7 +684,8 @@ function TestimonialsSection() {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          <div className="card p-8 lg:p-10 text-center">
+          <div className="card p-8 lg:p-10 text-center relative overflow-hidden">
+            {/* Decorative quote with slow rotation */}
             <Quote className="w-10 h-10 text-accent-200 mx-auto mb-4" />
             <div className="flex justify-center gap-1 mb-4">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -642,14 +729,36 @@ function TestimonialsSection() {
   );
 }
 
-/* ---------- Promo Banner ---------- */
+/* ---------- Promo Banner with mouse spotlight ---------- */
+
+function PromoCard({ children, className = "", spotlightColor = "rgba(239,90,22,0.15)" }) {
+  const [ref, mousePos, onMouseMove, onMouseLeave] = useMousePosition();
+
+  return (
+    <div
+      ref={ref}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      className={`relative overflow-hidden ${className}`}
+    >
+      {/* Mouse spotlight */}
+      <div
+        className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{
+          background: `radial-gradient(400px circle at ${((mousePos.x + 1) / 2) * 100}% ${((mousePos.y + 1) / 2) * 100}%, ${spotlightColor}, transparent 70%)`,
+        }}
+      />
+      {children}
+    </div>
+  );
+}
 
 function PromoBanner() {
   return (
     <section className="container-page py-14">
       <div className="grid sm:grid-cols-2 gap-6">
         <Reveal>
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-800 to-navy-900 p-8 text-white min-h-[220px] flex flex-col justify-center group hover:shadow-2xl transition-shadow duration-300">
+          <PromoCard className="rounded-2xl bg-gradient-to-br from-navy-800 to-navy-900 p-8 text-white min-h-[220px] flex flex-col justify-center group hover:shadow-2xl transition-shadow duration-300" spotlightColor="rgba(239,90,22,0.2)">
             <div className="absolute right-0 bottom-0 w-48 h-48 bg-accent-500/10 rounded-full -mb-20 -mr-20 group-hover:scale-125 transition-transform duration-500" />
             <div className="absolute right-10 top-6 w-20 h-20 bg-accent-500/5 rounded-full" />
             <div className="relative z-10">
@@ -666,11 +775,11 @@ function PromoBanner() {
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
               </Link>
             </div>
-          </div>
+          </PromoCard>
         </Reveal>
 
         <Reveal delay={150}>
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-500 to-accent-600 p-8 text-white min-h-[220px] flex flex-col justify-center group hover:shadow-2xl transition-shadow duration-300">
+          <PromoCard className="rounded-2xl bg-gradient-to-br from-accent-500 to-accent-600 p-8 text-white min-h-[220px] flex flex-col justify-center group hover:shadow-2xl transition-shadow duration-300" spotlightColor="rgba(255,255,255,0.2)">
             <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/10 rounded-full -mb-20 -mr-20 group-hover:scale-125 transition-transform duration-500" />
             <div className="absolute right-10 top-6 w-20 h-20 bg-white/5 rounded-full" />
             <div className="relative z-10">
@@ -687,7 +796,7 @@ function PromoBanner() {
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
               </Link>
             </div>
-          </div>
+          </PromoCard>
         </Reveal>
       </div>
     </section>
@@ -715,7 +824,7 @@ function NewsletterSection() {
       <div className="container-page">
         <Reveal>
           <div className="max-w-2xl mx-auto text-center">
-            <div className="inline-flex w-14 h-14 rounded-2xl bg-accent-100 items-center justify-center mb-4">
+            <div className="inline-flex w-14 h-14 rounded-2xl bg-accent-100 items-center justify-center mb-4 hover:scale-110 hover:rotate-6 transition-transform duration-300">
               <Heart className="w-7 h-7 text-accent-600" />
             </div>
             <h2 className="text-3xl lg:text-4xl font-bold text-navy-900 mb-3">
@@ -725,7 +834,7 @@ function NewsletterSection() {
               Subscribe to get exclusive deals, new arrivals, and insider updates. No spam, unsubscribe anytime.
             </p>
             {submitted ? (
-              <div className="inline-flex items-center gap-2 bg-success-100 text-success-700 px-6 py-3 rounded-xl font-medium animate-scale-in">
+              <div className="inline-flex items-center gap-2 bg-success-100 text-success-700 px-6 py-3 rounded-xl font-medium animate-bounce-in">
                 <ShieldCheck className="w-5 h-5" />
                 Thanks for subscribing! Check your inbox.
               </div>
